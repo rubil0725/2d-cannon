@@ -1,5 +1,6 @@
 #include "environment.h"
 #include "raylib.h"
+#include "GameplaySystem.h" // needed for Player/GamePlaySystem types used in Update signature
 #include <cmath>
 #include <cstdlib>
 

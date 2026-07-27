@@ -1,32 +1,11 @@
-/*#pragma once
-#include<string>
-// Player struct - whuch holds all the data for a single player
-struct Player
-{
-	int health = 100; // player's current health
-	std::string name;       //player's name
-	int coins = 0;       // player coin count
-	int consecutivehits = 0;    //tracks consecutive direct hits done by the player
-	bool isAlive = true;        // tracks whether  the player is alive or not
-	int winStreak = 0;         // stores win streak
-};
-
-// prints player's name, HP and coins
-void printPlayer(Player P);
-
-//reduces health of player upon damage recieved and also calculates the win streak and returns ture if player is dead
-bool applyDamage(Player& p, int damage);
-
-// Switches turns between players
-void switchTurn(int &currentTurn);
-*/
+#pragma once
 
 #pragma once
 #include "cannon.h"
 constexpr int BLAST_COST = 2;
 constexpr int DAMAGE_BOOST_COST = 1;
 constexpr int WIND_SHIELD_COST = 1;
-constexpr int REPAIR_KIT_COST = 2;
+constexpr int REPAIR_KIT_COST = 1;
 
 constexpr int SIDEHIT_DAMAGE = 15;
 constexpr int NORMAL_DAMAGE = 20;
