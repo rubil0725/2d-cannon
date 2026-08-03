@@ -1,9 +1,9 @@
 #include "raylib.h"
 #include<string>
-#include <filesystem>
 #include"GameplaySystem.h"
 #include "environment.h"
 #include "cannon.h"
+#include"raymath.h"
 
 enum class GameState
 {
@@ -19,18 +19,16 @@ int main()
     GameState gameState = GameState::StartMenu;
 
     //-----------------------For Transition------------------------------------------------
-    constexpr int STRIP_COUNT = 16;
+   // constexpr int STRIP_COUNT = 16;
 
     constexpr float TRANSITION_TIME = 1.5f;
 
     constexpr float BANNER_TIME = 1.2f;
 
-    bool bannerDone = false;
-
     int winner = 0;
     double transitionStartTime=0.0f;
 
-    int colorchanger = 1;
+    // colorchanger unused - removed
 
     Player player1;
     Player player2;
@@ -50,9 +48,15 @@ int main()
     struct Projectile { float x=0,y=0,vx=0,vy=0; bool active=false; int owner=0; } proj;
     struct Explosion { float x=0,y=0,radius=0,timer=0; bool active=false; float maxRadius=30; } explosion;
 
-    // smoke trail particles for cannonball
-    struct Smoke { float x; float y; float life; };
-    std::vector<Smoke> smokeParticles;
+    struct SmokeParticle {
+        Vector2 position;
+        float radius;
+        float alpha;
+        bool active;
+    };
+
+    SmokeParticle smoke[100] = { 0 };
+    float smokeTimer = 0;
 
     Environment env;
 
@@ -60,7 +64,7 @@ int main()
     InitWindow(800, 600, "Practice");
 
 
-    bool landedhitonGround = false;
+ 
 
     // initialize audio device before using audio
     InitAudioDevice();
@@ -74,7 +78,7 @@ int main()
     int SCREEN_WIDTH = GetScreenWidth();
     int SCREEN_HEIGHT = GetScreenHeight();
     env.Init(SCREEN_WIDTH, SCREEN_HEIGHT);
-    // initialize demo cannon players on terrain
+    //---------------- initialize demo cannon players on terrain-------------------
     d1.x = (float)GetRandomValue(50, 200);
     d2.x = (float)GetRandomValue(600, 750);
     d1.y = env.GetTerrainHeight((int)d1.x);
@@ -85,9 +89,8 @@ int main()
     player1.cannon.groundPos = { player1.posX, player1.posY };
     player2.cannon.groundPos = { player2.posX, player2.posY };
     player1.cannon.playerIndex = 0; player2.cannon.playerIndex = 1;
-    player1.cannon.active = true; player2.cannon.active = true;
 
-    // helper to handle end-of-turn logic: switch turn, decrement buffs, randomize wind
+    //------------------ helper to handle endofturn logic: switch turn, decrement buffs, randomize wind------------------
     auto EndTurn = [&](void) {
         gameplay.switchTurn();
         // decrement turn-based buffs
@@ -112,10 +115,10 @@ int main()
     player2.cannon.barrelColor = { 140, 45, 40, 255 };
     // initialize gameplay player health and cannon health mapping (start at max health)
     player1.health = player1.maxHealth; player2.health = player2.maxHealth;
-    player1.cannon.health = player1.health; player2.cannon.health = player2.health;
 
     // projectile physics parameters
     const float GRAVITY = 200.0f;
+    //Basically:
     // Direct hit detection radius (center-to-center). Use a stricter threshold
     // so incidental ground impacts don't count as direct hits. We require the
     // projectile center to be within 60% of the original hit radius to
@@ -128,7 +131,7 @@ int main()
     const float insideshopicon_x = 0.35f * SCREEN_WIDTH;
     const float insideshopicon_y = 0.325 * SCREEN_HEIGHT;
 
-    int coins = 0;
+    
     
 
 
@@ -245,10 +248,10 @@ int main()
 
             if (!titleAnimationFinished)
             {
-                // ---------- CANN ----------
+                // ---------- CANN Animation----------
                 if (t < 1.20f)
                 {
-                    // Fly in fast, slow near impact
+                    //so that it flies in fast, slow near impact
                     float p = t / 1.20f;
 
                     // Ease-Out Cubic
@@ -518,10 +521,10 @@ int main()
 
             float elapsed = GetTime() - transitionStartTime;
 
-            float stripHeight = (float)SCREEN_HEIGHT / STRIP_COUNT;
+           // float stripHeight = (float)SCREEN_HEIGHT / STRIP_COUNT;
 
-            for (int i = 0; i < STRIP_COUNT; i++)
-            {
+          //  for (int i = 0; i < STRIP_COUNT; i++)
+           // {
 
                 float bannerElapsed = elapsed - TRANSITION_TIME;
 
@@ -569,64 +572,7 @@ int main()
                     );
                 }
 
-                float progress = (elapsed - i * 0.02f) / TRANSITION_TIME;
-
-                if (progress < 0.0f)
-                    progress = 0.0f;
-
-                if (progress > 1.0f)
-                    progress = 1.0f;
-
-                // Smooth easing
-                progress = progress * progress * (3.0f - 2.0f * progress);
-
-                float halfWidth = (SCREEN_WIDTH / 2.0f) * (1.0f - progress);
-
-                // Left half
-                if (i%2==0)
-                {
-                    DrawRectangle(
-                        0,
-                        (int)(i * stripHeight),
-                        (int)halfWidth,
-                        (int)stripHeight + 1,
-                        { 125, 30, 32, 255 }
-                    );
-                }
-                else
-                {
-
-                    DrawRectangle(
-                        0,
-                        (int)(i* stripHeight),
-                        (int)halfWidth,
-                        (int)stripHeight + 1,
-                        { 175, 30, 32, 255 }
-                    );
-                }
-                // Right half
-                if (i%2==0)
-                {
-                    DrawRectangle(
-                        SCREEN_WIDTH - (int)halfWidth,
-                        (int)(i * stripHeight),
-                        (int)halfWidth,
-                        (int)stripHeight + 1,
-                        { 125, 30, 32, 255 }
-                    );
-                }
-                else
-                {
-                    DrawRectangle(
-                        SCREEN_WIDTH - (int)halfWidth,
-                        (int)(i * stripHeight),
-                        (int)halfWidth,
-                        (int)stripHeight + 1,
-                        { 175, 30, 32, 255 }
-                    );
-                }
-
-            }
+               
 
             // do not draw cannons during transition (they should appear only in Playing state)
 
@@ -659,10 +605,10 @@ int main()
             Player* shooterP = (gameplay.getCurrentTurn() == 1) ? &player1 : &player2;
             Player* targetP = (gameplay.getCurrentTurn() == 1) ? &player2 : &player1;
 
-            if (IsKeyDown(KEY_D)) shooterP->power += 100.0f * dt;
-            if (IsKeyDown(KEY_A)) shooterP->power -= 100.0f * dt;
-            if (IsKeyDown(KEY_W)) shooterP->angle += 60.0f * dt;
-            if (IsKeyDown(KEY_S)) shooterP->angle -= 60.0f * dt;
+            if (IsKeyDown(KEY_RIGHT)) shooterP->power += 100.0f * dt;
+            if (IsKeyDown(KEY_LEFT)) shooterP->power -= 100.0f * dt;
+            if (IsKeyDown(KEY_UP)) shooterP->angle += 60.0f * dt;
+            if (IsKeyDown(KEY_DOWN)) shooterP->angle -= 60.0f * dt;
             if (shooterP->angle < 0) shooterP->angle = 0;
             if (shooterP->angle > 90) shooterP->angle = 90;
             // map relative angle to cannon angleDeg
@@ -681,8 +627,7 @@ int main()
                 proj.vy = -shooterP->power * sinf(rad);
                 proj.active = true;
                 proj.owner = (gameplay.getCurrentTurn()==1)?1:2;
-                // spawn initial smoke (short lifetime)
-                smokeParticles.push_back({proj.x, proj.y, 0.2f});
+              
             }
 
             // simulate projectile
@@ -693,19 +638,19 @@ int main()
                 proj.vy += GRAVITY * dt;
                 // apply wind; reduce effect if shooter had an active wind shield when firing
                 float windEffect = env.wind;
-                if (proj.owner == 1 && player1.windShieldTurns > 0) windEffect *= 0.5f;
-                if (proj.owner == 2 && player2.windShieldTurns > 0) windEffect *= 0.5f;
+                // If the shooter had an active wind shield when firing, ignore wind entirely for the projectile
+                if (proj.owner == 1 && player1.windShieldTurns > 0) windEffect = 0.0f;
+                if (proj.owner == 2 && player2.windShieldTurns > 0) windEffect = 0.0f;
                 proj.vx += windEffect * dt;
-                // spawn smoke trail periodically
-                if (GetRandomValue(0, 100) < 12) {
-                    smokeParticles.push_back({proj.x, proj.y, 0.225f});
-                }
+               
 
                 // collision with target
                 float dx = proj.x - targetP->posX;
                 float dy = proj.y - targetP->posY;
                 float dist = sqrtf(dx*dx + dy*dy);
-                if (dist <= 27.0f)
+                // direct hit radius scales with the shooter's explosion radius
+                float directHitRadius = shooterP->explosionRadius * 0.9f; // 0.9 keeps previous behavior when explosionRadius==30
+                if (dist <= directHitRadius)
                 {
                     PlaySound(cannonhit);
 
@@ -742,7 +687,7 @@ int main()
                 {
                     // ground collision
                     float groundY = env.GetTerrainHeight((int)proj.x);
-                   // landedhitonGround = true;
+                   // previous landedhitonGround logic removed; no-op
                     if (proj.y >= groundY)
                     {
                         explosion.x = proj.x; explosion.y = proj.y; explosion.timer = 0.4f; explosion.active = true; explosion.maxRadius = shooterP->explosionRadius; explosion.radius = 0;
@@ -754,14 +699,13 @@ int main()
                         proj.active = false;
 
                         // area damage (apply side hit damage to players inside blast)
-                        float d1dx = explosion.x - player1.posX; float d1dy = explosion.y - player1.posY; if (sqrtf(d1dx*d1dx + d1dy*d1dy) <= 50.0f) gameplay.applyDamage(player1, SIDEHIT_DAMAGE);
-                        float d2dx = explosion.x - player2.posX; float d2dy = explosion.y - player2.posY; if (sqrtf(d2dx*d2dx + d2dy*d2dy) <= 50.0f) gameplay.applyDamage(player2, SIDEHIT_DAMAGE);
+                        float d1dx = explosion.x - player1.posX; float d1dy = explosion.y - player1.posY;
+                        if (sqrtf(d1dx*d1dx + d1dy*d1dy) <= explosion.maxRadius) gameplay.applyDamage(player1, SIDEHIT_DAMAGE);
+                        float d2dx = explosion.x - player2.posX; float d2dy = explosion.y - player2.posY;
+                        if (sqrtf(d2dx*d2dx + d2dy*d2dy) <= explosion.maxRadius) gameplay.applyDamage(player2, SIDEHIT_DAMAGE);
                     }
                 }
-               /* if (landedhitonGround)
-                {
-					gameplay.switchTurn();
-                }*/
+                /* old landedhitonGround handling removed */
             }
 
             // update explosion
@@ -786,31 +730,38 @@ int main()
                 DrawCircle((int)explosion.x, (int)explosion.y, (int)explosion.radius, ORANGE);
                 DrawCircle((int)explosion.x, (int)explosion.y, (int)(explosion.radius*0.5f), YELLOW);
             }
-            // update and draw smoke trail particles
-            for (int i = (int)smokeParticles.size() - 1; i >= 0; --i)
-            {
-                // decrease life
-                smokeParticles[i].life -= dt;
-                if (smokeParticles[i].life <= 0.0f)
-                {
-                    // remove expired particle
-                    smokeParticles.erase(smokeParticles.begin() + i);
-                }
-                else
-                {
-                    // slight upward drift
-                    smokeParticles[i].y -= 10.0f * dt;
+            if (proj.active) {
+                smokeTimer += GetFrameTime();
+                if (smokeTimer >= 0.05f) {
+                    smokeTimer = 0;
 
-                    // draw particle with fading alpha and small size, use black color
-                    float lifeNorm = smokeParticles[i].life / 0.45f; // normalize against typical spawn life
-                    if (lifeNorm > 1.0f) lifeNorm = 1.0f;
-                    if (lifeNorm < 0.0f) lifeNorm = 0.0f;
-                    Color col = Fade(BLACK, lifeNorm);
-                    float size = 1.5f + (1.0f - lifeNorm) * 2.0f; // small particles
-                    DrawCircleV({ smokeParticles[i].x, smokeParticles[i].y }, size, col);
+                    Vector2 backward = Vector2Normalize(Vector2{ -proj.vx, -proj.vy });
+                    Vector2 spawnPos = Vector2Add(Vector2{proj.x,proj.y}, Vector2Scale(backward, 10.0f));
+
+                    for (int i = 0; i < 100; i++) {
+                        if (!smoke[i].active) {
+                            smoke[i].position = spawnPos;
+                            smoke[i].radius = 5.0f;
+                            smoke[i].alpha = 1.0f;
+                            smoke[i].active = true;
+                            break;
+                        }
+                    }
                 }
             }
 
+            for (int i = 0; i < 100; i++) {
+                if (smoke[i].active) {
+                    smoke[i].alpha -= (1.0f / 0.5f) * GetFrameTime(); // 1.5s lifetime
+                    if (smoke[i].alpha <= 0) smoke[i].active = false;
+                }
+            }
+
+            for (int i = 0; i < 100; i++) {
+                if (smoke[i].active) {
+                    DrawCircleV(smoke[i].position, smoke[i].radius, Fade(DARKGRAY, smoke[i].alpha));
+                }
+            }
             Player* currentPlayer;
 
             // Color the turn text to match the active player's cannon color
@@ -1018,10 +969,16 @@ int main()
                 }
 
             }
+
+			if (currentPlayer->health < 0)
+			{
+				currentPlayer->health = 0;
+			}
+
             /*For testing purpose*/
             if (IsKeyPressed(KEY_Q))
             {
-                currentPlayer->health = 0;
+                currentPlayer->health -= 60;
             }
             
             
@@ -1043,6 +1000,20 @@ int main()
                 player2 = Player();
                 gameplay = GamePlaySystem();
 
+				proj.active = false;
+                proj.x = proj.y = proj.vx = proj.vy = 0.0f;
+                proj.owner = 0; 
+                explosion.active = false; 
+                explosion.radius = 0.0f; 
+                explosion.timer = 0.0f;
+				for (int i = 0;i < 100; i++) { 
+                    smoke[i].active = false; 
+                    smoke[i].alpha = 0.0f; 
+                    smoke[i].radius = 0.0f; 
+                    smoke[i].position = { 0.0f, 0.0f }; 
+                }
+
+
                 // re-generate terrain and re-place demo cannons so restart feels fresh
                 env.Init(SCREEN_WIDTH, SCREEN_HEIGHT);
                 // randomize demo positions on new terrain
@@ -1057,7 +1028,7 @@ int main()
                 player1.cannon.groundPos = { player1.posX, player1.posY };
                 player2.cannon.groundPos = { player2.posX, player2.posY };
                 player1.cannon.playerIndex = 0; player2.cannon.playerIndex = 1;
-                player1.cannon.active = true; player2.cannon.active = true;
+                // cannon.active removed; visuals driven by Player::health
                 player1.cannon.bodyColor = { 60, 110, 200, 255 };
                 player1.cannon.barrelColor = { 40, 70, 140, 255 };
                 player2.cannon.bodyColor = { 200, 70, 60, 255 };
@@ -1093,6 +1064,19 @@ int main()
                 player2 = Player();
                 gameplay = GamePlaySystem();
 
+                proj.active = false;
+                proj.x = proj.y = proj.vx = proj.vy = 0.0f;
+                proj.owner = 0;
+                explosion.active = false;
+                explosion.radius = 0.0f;
+                explosion.timer = 0.0f;
+                for (int i = 0;i < 100; i++) {
+                    smoke[i].active = false;
+                    smoke[i].alpha = 0.0f;
+                    smoke[i].radius = 0.0f;
+                    smoke[i].position = { 0.0f, 0.0f };
+                }
+
                 // re-generate terrain and re-place demo cannons so restart feels fresh
                 env.Init(SCREEN_WIDTH, SCREEN_HEIGHT);
                 // randomize demo positions on new terrain
@@ -1107,7 +1091,7 @@ int main()
                 player1.cannon.groundPos = { player1.posX, player1.posY };
                 player2.cannon.groundPos = { player2.posX, player2.posY };
                 player1.cannon.playerIndex = 0; player2.cannon.playerIndex = 1;
-                player1.cannon.active = true; player2.cannon.active = true;
+                // cannon.active removed; visuals driven by Player::health
                 player1.cannon.bodyColor = { 60, 110, 200, 255 };
                 player1.cannon.barrelColor = { 40, 70, 140, 255 };
                 player2.cannon.bodyColor = { 200, 70, 60, 255 };
