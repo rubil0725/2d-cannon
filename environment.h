@@ -1,7 +1,8 @@
 #pragma once
 #include "raylib.h"
-#include "GameplaySystem.h"
-#include "cannon.h"
+// Forward declarations to avoid heavy includes in the header
+struct Player;
+class GamePlaySystem;
 #include <vector>
 
 class Environment
@@ -32,19 +33,7 @@ private:
 	std::vector<float> terrain;
 	std::vector<float> bgTerrain;
 
-	// demo players (positions, angles, cannon visuals)
-	struct DemoPlayer {
-		float x = 0;
-		float y = 0;
-		float angle = 45.0f; // relative angle (0..90)
-		float power = 300.0f;
-		int explosionRadius = 30;
-		Cannon cannon;
-	} p1, p2;
-
-	struct Projectile {
-		float x=0, y=0, vx=0, vy=0; bool active=false;
-	} ball;
+	// (DemoPlayer and Projectile were unused and removed to reduce coupling)
 	struct Explosion { float x=0,y=0,radius=0,timer=0; bool active=false; float maxRadius=30; } explosion;
 
 	float GROUND_Y = 350.0f;

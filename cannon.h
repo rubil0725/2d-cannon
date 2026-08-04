@@ -2,6 +2,9 @@
 #include "raylib.h"
 #include "terrain.h"
 
+// forward-declare Player so CannonManager can keep optional pointers
+struct Player;
+
 // ── Cannon ─────────────────────────────────────────────────────────────────
 // One player's cannon: a base (tracked body) + turret + barrel, drawn as
 // actual shapes rather than a placeholder rectangle, plus health tracking
@@ -10,12 +13,10 @@ struct Cannon {
     Vector2 groundPos;   // where the cannon sits (bottom-center, on the terrain)
     float   angleDeg;    // barrel angle in degrees. 0 = pointing right, 180 = pointing left
     float   power;       // 0-100 shot power, used by whatever fires the projectile
-    int     health;
-    int     maxHealth;
     Color   bodyColor;
     Color   barrelColor;
     int     playerIndex; // 0 = left player, 1 = right player
-    bool    active;      // false once destroyed
+    // alive state is derived from Player::health; Cannon no longer stores it
 
     static constexpr float BASE_WIDTH  = 46.0f;
     static constexpr float BASE_HEIGHT = 18.0f;
@@ -29,10 +30,9 @@ struct Cannon {
     // Rectangle used for incoming-projectile collision checks (roughly the base+turret).
     Rectangle GetHitbox() const;
 
-    void TakeDamage(int amount); // sets active=false if health drops to 0 or below
-
     void Draw() const;         // draws base, turret and barrel
-    void DrawHealthBar() const; // small bar floating above the cannon
+    // Draw health bar using external authoritative values (Player health)
+    void DrawHealthBar(int health, int maxHealth) const;
 };
 
 // ── CannonManager ──────────────────────────────────────────────────────────
@@ -42,6 +42,9 @@ struct Cannon {
 class CannonManager {
 public:
     Cannon cannons[2];
+    // Optional pointers to the gameplay Player structs so the manager can
+    // draw cannon visuals (and healthbars) based on Player::health.
+    const Player* players[2] = { nullptr, nullptr };
 
     // Places both cannons.
     //   minGap / maxGap: the randomized horizontal distance (in pixels)

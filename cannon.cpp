@@ -1,6 +1,6 @@
 #include "cannon.h"
+#include "GameplaySystem.h"
 #include <cmath>
-#include <cstdlib>
 #include <algorithm>
 
 Vector2 Cannon::GetMuzzlePos() const {
@@ -18,17 +18,7 @@ Rectangle Cannon::GetHitbox() const {
     return { groundPos.x - w / 2.0f, groundPos.y - h, w, h };
 }
 
-void Cannon::TakeDamage(int amount) {
-    if (!active) return;
-    health -= amount;
-    if (health <= 0) {
-        health = 0;
-        active = false;
-    }
-}
-
 void Cannon::Draw() const {
-    if (!active) return;
 
     Vector2 turretCenter = { groundPos.x, groundPos.y - BASE_HEIGHT - TURRET_RADIUS * 0.4f };
 
@@ -100,14 +90,13 @@ void Cannon::Draw() const {
     DrawText(label, (int)(groundPos.x - textW / 2.0f), (int)(groundPos.y + 4), 14, BLACK);
 }
 
-void Cannon::DrawHealthBar() const {
-    if (!active) return;
+void Cannon::DrawHealthBar(int healthValue, int maxHealthValue) const {
     float barW = BASE_WIDTH + 10.0f;
     float barH = 6.0f;
     float x = groundPos.x - barW / 2.0f;
     float y = groundPos.y - BASE_HEIGHT - TURRET_RADIUS * 2.0f - 14.0f;
 
-    float pct = (maxHealth > 0) ? (float)health / (float)maxHealth : 0.0f;
+    float pct = (maxHealthValue > 0) ? (float)healthValue / (float)maxHealthValue : 0.0f;
     pct = std::max(0.0f, std::min(1.0f, pct));
 
     Color fillColor = (pct > 0.5f) ? GREEN : (pct > 0.25f) ? ORANGE : RED;
@@ -140,22 +129,18 @@ void CannonManager::SpawnCannons(Terrain& terrain, int seed, int minGap, int max
     cannons[0].groundPos    = { (float)leftX,  (float)terrain.heights[leftX] };
     cannons[0].angleDeg     = 45.0f;   // aiming up-right toward the opponent
     cannons[0].power        = 55.0f;
-    cannons[0].health       = 100;
-    cannons[0].maxHealth    = 100;
+    // cannons internal health removed; no-op initialization
     cannons[0].bodyColor    = { 60, 110, 200, 255 };  // blue = player 1
     cannons[0].barrelColor  = { 40, 70,  140, 255 };
     cannons[0].playerIndex  = 0;
-    cannons[0].active       = true;
 
     cannons[1].groundPos    = { (float)rightX, (float)terrain.heights[rightX] };
     cannons[1].angleDeg     = 135.0f;  // aiming up-left toward the opponent
     cannons[1].power        = 55.0f;
-    cannons[1].health       = 100;
-    cannons[1].maxHealth    = 100;
+    // cannons internal health removed; no-op initialization
     cannons[1].bodyColor    = { 200, 70, 60, 255 };   // red = player 2
     cannons[1].barrelColor  = { 140, 45, 40, 255 };
     cannons[1].playerIndex  = 1;
-    cannons[1].active       = true;
 }
 
 void CannonManager::SettleOnTerrain(Terrain& terrain) {
@@ -167,8 +152,17 @@ void CannonManager::SettleOnTerrain(Terrain& terrain) {
 }
 
 void CannonManager::Draw() const {
-    for (auto& c : cannons) {
+    for (int i = 0; i < 2; ++i) {
+        const Cannon& c = cannons[i];
+        // If Player pointer is present and player is dead, skip drawing the cannon
+        const Player* p = players[i];
+        if (p && p->health <= 0) continue;
         c.Draw();
-        c.DrawHealthBar();
+        if (p) {
+            c.DrawHealthBar(p->health, p->maxHealth);
+        }
+        else {
+            c.DrawHealthBar(100, 100);
+        }
     }
 }
